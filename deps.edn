@@ -1,1 +1,4 @@
-{}
+{:deps {mvxcvi/alphabase {:mvn/version "2.1.1"}
+        org.clojure/tools.namespace  #_{:local/root "/Users/borkdude/Dropbox/dev/clojure/tools.namespace"}
+        {:git/url "https://github.com/babashka/tools.namespace"
+         :git/sha "a13b037215e21a2e71aa34b27e1dd52c801a2a7b"}}}
