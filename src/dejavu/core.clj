@@ -137,13 +137,13 @@
         (install-from-tmp-dir resource-dir tmp-download-dir asset-vals)
         (fs/copy assets-edn resource-dir {:replace-existing true})))))
 
-#_(defn manifest [shas]
+(defn manifest [{:keys [resource-dir file-sha-map]}]
   {:asset-map (into {}
                     (map (fn [[file sha]]
-                           (let [relative (fs/relativize "journal/server/resources/public" file)]
+                           (let [relative (fs/relativize resource-dir file)]
                              [(str (str "/" relative))
                               (str "/"(human-readable relative sha))]))
-                         shas))})
+                         file-sha-map))})
 
 #_(defn cached-browser-release [{:keys [fileset
                                       bucket
