@@ -121,7 +121,7 @@
     (fs/copy f (doto (find-dest resource-dir f asset-vals)
                  (-> fs/parent fs/create-dirs)))))
 
-(defn download [resource-dir assets-edn]
+#_(defn download [resource-dir assets-edn]
   (let [_ (println "Found pre-built CLJS assets")
         tmp-download-dir (str (fs/create-temp-dir))
         asset-map (-> (slurp assets-edn)
@@ -137,12 +137,12 @@
       (println "Assets already downloaded!")
       (do
         (println "Downloading assets to" tmp-download-dir)
-        (cp "-I" tmp-download-dir true {:in target-input})
+        (gs-copy "-I" tmp-download-dir true {:in target-input})
         (install-from-tmp-dir resource-dir tmp-download-dir asset-vals)
         (fs/copy assets-edn "journal/server/resources" {:replace-existing true})
         (println (slurp assets-edn))))))
 
-(defn manifest [shas]
+#_(defn manifest [shas]
   {:asset-map (into {}
                     (map (fn [[file sha]]
                            (let [relative (fs/relativize "journal/server/resources/public" file)]
@@ -150,7 +150,7 @@
                               (str "/"(human-readable relative sha))]))
                          shas))})
 
-(defn cached-browser-release [{:keys [fileset
+#_(defn cached-browser-release [{:keys [fileset
                                       bucket
                                       build-fn
                                       output-dirs
