@@ -29,7 +29,9 @@
         fn (str fn ".sha1")]
     fn))
 
-(defn file-set-hash [file-set]
+(defn file-set-hash
+  "Returns combined sha1 of file-set contents."
+  [file-set]
   (let [out-dir (fs/file ".work/.fileset_hash")
         _ (fs/create-dirs out-dir)
         out-file (fs/file out-dir "aggregate.txt")]
@@ -39,7 +41,7 @@
         (spit out-file (str sf ":" (sha1 (slurp f)) "\n") :append true)))
     (sha1 (slurp out-file))))
 
-(defn gsutil [opts & args]
+(defn- gsutil [opts & args]
   (let [args (map str (into ["gsutil"] args))]
     (apply println args)
     (let [{:keys [out err]}
@@ -54,6 +56,8 @@
       (flush))))
 
 (defn gs-copy
+  "Copies local or remote file to local or remote file using gs-util.
+  When throw-when-missing is false and remote file wasn't found, returns :dejavu.core/not-found."
   ([from to]
    (gs-copy from to true))
   ([from to throw-when-missing?]
@@ -106,7 +110,7 @@
 (defn- gs-assets [bucket f]
   (str bucket "/" (fs/file-name f)))
 
-(defn resource [resource-dir f]
+(defn- resource [resource-dir f]
   (fs/file resource-dir (str/replace f #"^/" "")))
 
 (defn- find-dest [resource-dir f asset-vals]
@@ -119,6 +123,7 @@
                  (-> fs/parent fs/create-dirs)))))
 
 (defn download-assets
+  "Downloads files in manifest's :asset-map from bucket to resource dir."
   [{:keys [resource-dir bucket manifest]}]
   (let [tmp-download-dir (str (fs/create-temp-dir))
         asset-map (-> (slurp manifest)
@@ -138,7 +143,9 @@
         (install-from-tmp-dir resource-dir tmp-download-dir asset-vals)
         (fs/copy manifest resource-dir {:replace-existing true})))))
 
-(defn manifest [{:keys [resource-dir file-sha-map]}]
+(defn manifest
+  "Produces manifest."
+  [{:keys [resource-dir file-sha-map]}]
   {:asset-map (into {}
                     (map (fn [[file sha]]
                            (let [relative (fs/relativize resource-dir file)]
