@@ -2,7 +2,6 @@
   (:require [alphabase.base58 :refer [encode] :rename {encode base-58}]
             [babashka.fs :as fs]
             [babashka.process :as p]
-            [clojure.edn :as edn]
             [clojure.string :as str]
             [clojure.tools.namespace.file :as ns-file]
             [clojure.tools.namespace.parse :as ns-parse])
@@ -68,31 +67,31 @@
               ::not-found
               (throw e)))))))
 
-(defn sha512s [asset-glob output-dirs]
-  (let [files (map str (mapcat #(fs/glob % asset-glob) output-dirs))
-        sha512 (map sha512 files)]
-    (zipmap files sha512)))
-
-(defn human-readable [file sha]
+(defn human-readable
+  "Makes a human readable filename from given file and SHA.
+  E.g. foo.html + sha -> foo-sha.html"
+  [file sha]
   (let [[leading ext] (fs/split-ext file)]
     (str leading "-" sha "." ext)))
 
-(defn glob-sources [dir glob]
+(defn- glob-sources [dir glob]
   (map str (fs/glob dir glob)))
 
-(defn find-clojure-file [cp-dirs ns-name]
+(defn- find-clojure-file [cp-dirs ns-name]
   (let [f (str (str/replace ns-name "." "/") ".clj")]
     (some (fn [dir]
             (let [f (fs/file dir f)]
               (when (fs/exists? f)
                 (str f)))) cp-dirs)))
 
-(defn find-clojure-files [cp-dirs ns-names]
+(defn- find-clojure-files [cp-dirs ns-names]
   (keep #(find-clojure-file cp-dirs %) ns-names))
 
-(defn cljs-sources [dirs source-glob]
+(defn cljs-files
+  "Returns CLJS files + CLJ files that contain related macros from dirs."
+  [dirs]
   (let [cp-dirs dirs
-        direct-inputs (mapcat #(glob-sources % source-glob) cp-dirs)
+        direct-inputs (mapcat #(glob-sources % "**.{cljs,cljc}") cp-dirs)
         cljs-namespaces (map ns-file/read-file-ns-decl direct-inputs)
         cljs-deps (set (mapcat ns-parse/deps-from-ns-decl cljs-namespaces))
         clojure-files (find-clojure-files cp-dirs cljs-deps)
