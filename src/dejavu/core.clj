@@ -1,14 +1,11 @@
 (ns dejavu.core
   (:require [alphabase.base58 :refer [encode] :rename {encode base-58}]
-            [babashka.classpath :as cp]
             [babashka.fs :as fs]
             [babashka.process :as p]
-            [babashka.tasks :refer [shell]]
             [clojure.edn :as edn]
             [clojure.string :as str]
             [clojure.tools.namespace.file :as ns-file]
-            [clojure.tools.namespace.parse :as ns-parse]
-            [tasks-helper :as th :refer [*the-dir*]])
+            [clojure.tools.namespace.parse :as ns-parse])
   (:import [java.security MessageDigest]))
 
 (defn sha [s algo]
@@ -32,7 +29,7 @@
         fn (str fn ".sha1")]
     fn))
 
-(defn fileset-hash [file-set]
+(defn file-set-hash [file-set]
   (let [out-dir (fs/file ".work/.fileset_hash")
         _ (fs/create-dirs out-dir)
         out-file (fs/file out-dir "aggregate.txt")]
@@ -42,21 +39,25 @@
         (spit out-file (str sf ":" (sha1 (slurp f)) "\n") :append true)))
     (sha1 (slurp out-file))))
 
-(def verbose true)
-
 (defn gsutil [opts & args]
   (let [args (map str (into ["gsutil"] args))]
-    (when verbose (apply println args))
-    (-> (p/process args (merge {:out :string
-                                :err :string}
-                               opts))
-        p/check)))
+    (apply println args)
+    (let [{:keys [out err]}
+          (-> (p/process args (merge {:out :string
+                                      :err :string}
+                                     opts))
+              p/check)]
+      (when-not (str/blank? out)
+        (print out))
+      (when-not (str/blank? err)
+        (print err))
+      (flush))))
 
-(defn cp
+(defn gs-copy
   ([from to]
-   (cp from to true))
+   (gs-copy from to true))
   ([from to throw-when-missing?]
-   (cp from to throw-when-missing? nil))
+   (gs-copy from to throw-when-missing? nil))
   ([from to throw-when-missing? opts]
    (try (gsutil opts "cp" "-r" from to)
         ::success
