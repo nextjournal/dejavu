@@ -2,6 +2,7 @@
   (:require [alphabase.base58 :refer [encode] :rename {encode base-58}]
             [babashka.fs :as fs]
             [babashka.process :as p]
+            [clojure.edn :as edn]
             [clojure.string :as str]
             [clojure.tools.namespace.file :as ns-file]
             [clojure.tools.namespace.parse :as ns-parse])
@@ -102,11 +103,8 @@
     (println "Macro namespaces: "macro-files)
     (concat direct-inputs macro-files)))
 
-(defn gs-assets-dir [bucket]
-  (str bucket "/assets"))
-
-(defn gs-assets [f]
-  (str gs-assets-dir "/" (fs/file-name f)))
+(defn gs-assets [bucket f]
+  (str bucket "/" (fs/file-name f)))
 
 (defn resource [resource-dir f]
   (fs/file resource-dir (str/replace f #"^/" "")))
@@ -120,26 +118,24 @@
     (fs/copy f (doto (find-dest resource-dir f asset-vals)
                  (-> fs/parent fs/create-dirs)))))
 
-#_(defn download [resource-dir assets-edn]
-  (let [_ (println "Found pre-built CLJS assets")
-        tmp-download-dir (str (fs/create-temp-dir))
+(defn download-assets [{:keys [resource-dir bucket assets-edn]}]
+  (let [tmp-download-dir (str (fs/create-temp-dir))
         asset-map (-> (slurp assets-edn)
                       (edn/read-string)
                       :asset-map)
         asset-vals (vals asset-map)
         target-list (->> asset-vals
                          (map fs/file-name)
-                         (map gs-assets))
+                         (map #(gs-assets bucket %)))
         target-input (str/join "\n" target-list)
         resources (map #(resource resource-dir %) asset-vals)]
     (if (every? fs/exists? resources)
       (println "Assets already downloaded!")
       (do
-        (println "Downloading assets to" tmp-download-dir)
+        (println "Downloading assets")
         (gs-copy "-I" tmp-download-dir true {:in target-input})
         (install-from-tmp-dir resource-dir tmp-download-dir asset-vals)
-        (fs/copy assets-edn "journal/server/resources" {:replace-existing true})
-        (println (slurp assets-edn))))))
+        (fs/copy assets-edn resource-dir {:replace-existing true})))))
 
 #_(defn manifest [shas]
   {:asset-map (into {}
