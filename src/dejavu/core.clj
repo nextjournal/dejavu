@@ -103,24 +103,25 @@
     (println "Macro namespaces: "macro-files)
     (concat direct-inputs macro-files)))
 
-(defn gs-assets [bucket f]
+(defn- gs-assets [bucket f]
   (str bucket "/" (fs/file-name f)))
 
 (defn resource [resource-dir f]
   (fs/file resource-dir (str/replace f #"^/" "")))
 
-(defn find-dest [resource-dir f asset-vals]
+(defn- find-dest [resource-dir f asset-vals]
   (some #(when (= (fs/file-name f) (fs/file-name %))
            (resource resource-dir %)) asset-vals))
 
-(defn install-from-tmp-dir [resource-dir tmp-dir asset-vals]
+(defn- install-from-tmp-dir [resource-dir tmp-dir asset-vals]
   (doseq [f (fs/list-dir tmp-dir)]
     (fs/copy f (doto (find-dest resource-dir f asset-vals)
                  (-> fs/parent fs/create-dirs)))))
 
-(defn download-assets [{:keys [resource-dir bucket assets-edn]}]
+(defn download-assets
+  [{:keys [resource-dir bucket manifest]}]
   (let [tmp-download-dir (str (fs/create-temp-dir))
-        asset-map (-> (slurp assets-edn)
+        asset-map (-> (slurp manifest)
                       (edn/read-string)
                       :asset-map)
         asset-vals (vals asset-map)
@@ -135,7 +136,7 @@
         (println "Downloading assets")
         (gs-copy "-I" tmp-download-dir true {:in target-input})
         (install-from-tmp-dir resource-dir tmp-download-dir asset-vals)
-        (fs/copy assets-edn resource-dir {:replace-existing true})))))
+        (fs/copy manifest resource-dir {:replace-existing true})))))
 
 (defn manifest [{:keys [resource-dir file-sha-map]}]
   {:asset-map (into {}
@@ -144,38 +145,3 @@
                              [(str (str "/" relative))
                               (str "/"(human-readable relative sha))]))
                          file-sha-map))})
-
-#_(defn cached-browser-release [{:keys [fileset
-                                      bucket
-                                      build-fn
-                                      output-dirs
-                                      asset-glob
-                                      resource-dir]}]
-  (let [front-end-hash (fileset-hash fileset)
-        remote-assets-edn (str bucket "/lookup/" front-end-hash)
-        tmp-dir (fs/create-temp-dir)
-        assets-edn (fs/file tmp-dir "asset_manifest.edn")
-        res (cp remote-assets-edn assets-edn false)]
-    (if (= ::not-found res)
-      (do
-        (run! fs/delete-tree output-dirs)
-        (build-fn)
-        (let [shas (sha512s asset-glob output-dirs)
-              manifest (manifest shas)
-              asset-vals (:asset-map manifest)]
-          (let [tmp-upload-dir (str (fs/create-temp-dir))]
-            (println "Preparing uploads dir" tmp-upload-dir)
-            (doseq [[file sha] asset-vals]
-              (prn :file (resource resource-dir file) :sha sha)
-              (fs/copy (resource resource-dir file) (doto (fs/file tmp-upload-dir (subs sha 1))
-                                                      (-> fs/parent (doto prn) fs/create-dirs))))
-            (println "Uploading uploads dir")
-            (cp (str tmp-upload-dir "/**") gs-assets-dir))
-          (spit assets-edn (with-out-str ((requiring-resolve 'clojure.pprint/pprint)
-                                          manifest)))
-          (cp assets-edn remote-assets-edn)
-          (fs/copy assets-edn resource-dir {:replace-existing true})
-          (println (slurp assets-edn))
-          (run! fs/delete-tree output-dirs)
-          (download resource-dir assets-edn)))
-      (download resource-dir assets-edn))))
