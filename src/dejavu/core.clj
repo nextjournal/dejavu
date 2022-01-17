@@ -68,7 +68,7 @@
         (catch Exception e
           (let [err (:err (ex-data e))]
             (if (and (not throw-when-missing?)
-                     (str/includes? err "No URLs matched"))
+                     (and err (str/includes? err "No URLs matched")))
               ::not-found
               (throw e)))))))
 
