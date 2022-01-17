@@ -145,10 +145,13 @@
 
 (defn manifest
   "Produces manifest."
-  [{:keys [resource-dir file-sha-map]}]
+  [{:keys [resource-dir file-sha-map
+           bucket]}]
   {:asset-map (into {}
                     (map (fn [[file sha]]
                            (let [relative (fs/relativize resource-dir file)]
                              [(str (str "/" relative))
-                              (str "/"(human-readable relative sha))]))
+                              (str bucket "/" (human-readable (if bucket
+                                                                (fs/file-name relative)
+                                                                relative) sha))]))
                          file-sha-map))})
