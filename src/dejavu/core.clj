@@ -39,6 +39,8 @@
     (doseq [f file-set]
       (let [sf (sha1-file f)]
         (spit out-file (str sf ":" (sha1 (slurp f)) "\n") :append true)))
+    (println "Aggregate sha-1 hash:")
+    (println (slurp out-file))
     (sha1 (slurp out-file))))
 
 (defn- gsutil [opts & args]
