@@ -1,4 +1,4 @@
-(ns dejavu.core
+(ns nextjournal.dejavu
   (:require [alphabase.base58 :refer [encode] :rename {encode base-58}]
             [babashka.fs :as fs]
             [babashka.process :as p]
