@@ -66,7 +66,7 @@
   ([from to throw-when-missing?]
    (gs-copy from to throw-when-missing? nil))
   ([from to throw-when-missing? opts]
-   (try (gsutil opts "cp" "-r" from to)
+   (try (gsutil opts "-m" "cp" "-z" "js,css,map" "-r" from to)
         ::success
         (catch Exception e
           (let [err (:err (ex-data e))]
