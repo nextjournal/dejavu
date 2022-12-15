@@ -29,6 +29,15 @@
         fn (str fn ".sha1")]
     fn))
 
+(defn log [& args]
+  (when (System/getProperty "nextjournal.dejavu.debug")
+    (binding [*out* *err*]
+      (apply println args))))
+
+(comment
+  (System/setProperty "nextjournal.dejavu.debug" "true")
+  (System/clearProperty "nextjournal.dejavu.debug"))
+
 (defn file-set-hash
   "Returns combined sha1 of file-set contents."
   [file-set]
@@ -39,14 +48,14 @@
     (doseq [f (sort file-set)]
       (let [sf (sha1-file f)]
         (spit out-file (str sf ":" (sha1 (slurp f)) "\n") :append true)))
-    (println "Aggregate sha-1 hash:")
-    (println (slurp out-file))
-    (println "SHA-1:" (sha1 (slurp out-file)))
+    (log "Aggregate sha-1 hash:")
+    (log (slurp out-file))
+    (log "SHA-1:" (sha1 (slurp out-file)))
     (sha1 (slurp out-file))))
 
 (defn- gsutil [opts & args]
   (let [args (map str (into ["gsutil"] args))]
-    (apply println args)
+    (apply log args)
     (let [{:keys [out err]}
           (-> (p/process args (merge {:out :string
                                       :err :string}
@@ -107,7 +116,7 @@
         ;; other .clj namespaces. So far that assumption seems to hold.
         macro-files (keep #(when (str/includes? (slurp %) "defmacro")
                              %) clojure-files)]
-    (println "Macro namespaces: "macro-files)
+    (log "Macro namespaces: "macro-files)
     (concat direct-inputs macro-files)))
 
 (defn- gs-assets [bucket f]
