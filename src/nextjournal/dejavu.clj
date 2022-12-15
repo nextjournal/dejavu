@@ -11,7 +11,7 @@
 (defn sha [s algo]
   (let [instance (MessageDigest/getInstance algo)
         bytes (.digest instance (cond (string? s)
-                                      (.getBytes s)
+                                      (.getBytes s "UTF-8")
                                       (fs/exists? s)
                                       (fs/read-all-bytes s)
                                       :else (throw (IllegalArgumentException. (str (type s))))))
