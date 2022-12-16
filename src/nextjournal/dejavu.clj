@@ -42,21 +42,20 @@
   (System/setProperty "nextjournal.dejavu.debug" "true")
   (System/clearProperty "nextjournal.dejavu.debug"))
 
+
 (defn file-set-hash
   "Returns combined sha1 of file-set contents."
   ([file-set] (file-set-hash (fs/file ".") file-set))
   ([base-dir file-set]
-   (let [out-dir (fs/file ".work/.fileset_hash")
-         _ (fs/create-dirs out-dir)
-         out-file (fs/file out-dir "aggregate.txt")]
-     (spit out-file "")
-     (doseq [f (sort file-set)]
-       (let [sf (sha1-file base-dir f)]
-         (spit out-file (str sf ":" (sha1 (slurp f)) "\n") :append true)))
+   (let [aggregate (str/join "\n"
+                             (into []
+                                   (map (fn [f] (let [sf (sha1-file base-dir f)]
+                                                  (str sf ":" (sha1 (slurp f))))))
+                                   (sort file-set)))]
      (log "Aggregate sha-1 hash:")
-     (log (slurp out-file))
-     (log "SHA-1:" (sha1 (slurp out-file)))
-     (sha1 (slurp out-file)))))
+     (log aggregate)
+     (log "SHA-1:" (sha1 aggregate))
+     (sha1 aggregate))))
 
 (defn- gsutil [opts & args]
   (let [args (map str (into ["gsutil"] args))]
