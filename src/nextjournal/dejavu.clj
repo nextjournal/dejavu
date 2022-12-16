@@ -24,10 +24,14 @@
 (defn sha512 [s]
   (sha s "SHA-512"))
 
-(defn sha1-file [f]
-  (let [fn (str/replace f fs/file-separator "|")
+(defn sha1-file [base-dir f]
+  (let [f (str/replace (str f) (re-pattern (str "^" base-dir fs/file-separator)) "")
+        fn (str/replace f fs/file-separator "|")
         fn (str fn ".sha1")]
     fn))
+
+#_(sha1-file (fs/file "")
+             (fs/file "src/nextjournal/clerk/static_app.cljs"))
 
 (defn log [& args]
   (when (System/getProperty "nextjournal.dejavu.debug")
@@ -40,18 +44,19 @@
 
 (defn file-set-hash
   "Returns combined sha1 of file-set contents."
-  [file-set]
-  (let [out-dir (fs/file ".work/.fileset_hash")
-        _ (fs/create-dirs out-dir)
-        out-file (fs/file out-dir "aggregate.txt")]
-    (spit out-file "")
-    (doseq [f (sort file-set)]
-      (let [sf (sha1-file f)]
-        (spit out-file (str sf ":" (sha1 (slurp f)) "\n") :append true)))
-    (log "Aggregate sha-1 hash:")
-    (log (slurp out-file))
-    (log "SHA-1:" (sha1 (slurp out-file)))
-    (sha1 (slurp out-file))))
+  ([file-set] (file-set-hash (fs/file ".") file-set))
+  ([base-dir file-set]
+   (let [out-dir (fs/file ".work/.fileset_hash")
+         _ (fs/create-dirs out-dir)
+         out-file (fs/file out-dir "aggregate.txt")]
+     (spit out-file "")
+     (doseq [f (sort file-set)]
+       (let [sf (sha1-file base-dir f)]
+         (spit out-file (str sf ":" (sha1 (slurp f)) "\n") :append true)))
+     (log "Aggregate sha-1 hash:")
+     (log (slurp out-file))
+     (log "SHA-1:" (sha1 (slurp out-file)))
+     (sha1 (slurp out-file)))))
 
 (defn- gsutil [opts & args]
   (let [args (map str (into ["gsutil"] args))]
@@ -117,7 +122,7 @@
         macro-files (keep #(when (str/includes? (slurp %) "defmacro")
                              %) clojure-files)]
     (log "Macro namespaces: "macro-files)
-    (concat direct-inputs macro-files)))
+    (mapv fs/file (concat direct-inputs macro-files))))
 
 (defn- gs-assets [bucket f]
   (str bucket "/" (fs/file-name f)))
