@@ -24,8 +24,11 @@
 (defn sha512 [s]
   (sha s "SHA-512"))
 
+(defn escape-backslash [s]
+  (str/replace s "\\" "\\\\"))
+
 (defn sha1-file [base-dir f]
-  (let [f (str/replace (str f) (re-pattern (str "^" base-dir fs/file-separator)) "")
+  (let [f (str/replace (str f) (re-pattern (escape-backslash (str "^" base-dir fs/file-separator))) "")
         fn (str/replace f fs/file-separator "|")
         fn (str fn ".sha1")]
     fn))
