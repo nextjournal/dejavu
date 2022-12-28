@@ -53,7 +53,7 @@
    (let [aggregate (str/join "\n"
                              (into []
                                    (map (fn [f] (let [sf (sha1-file base-dir f)]
-                                                  (str sf ":" (sha1 (slurp f))))))
+                                                  (str sf ":" (sha1 f)))))
                                    (sort file-set)))]
      (log "Aggregate sha-1 hash:")
      (log aggregate)
