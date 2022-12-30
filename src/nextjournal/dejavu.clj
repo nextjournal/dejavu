@@ -25,13 +25,13 @@
   (sha s "SHA-512"))
 
 (defn sha1-file [base-dir f]
-  (let [f (str/replace-first (str f) (str base-dir fs/file-separator) "")
+  (let [f (fs/relativize base-dir f)
         fn (str/replace f fs/file-separator "|")
         fn (str fn ".sha1")]
     fn))
 
-#_(sha1-file (fs/file "")
-             (fs/file "src/nextjournal/clerk/static_app.cljs"))
+#_(sha1-file (fs/absolutize (fs/file ""))
+             (fs/absolutize (fs/file "src/nextjournal/clerk/static_app.cljs")))
 
 (defn log [& args]
   (when (System/getProperty "nextjournal.dejavu.debug")
