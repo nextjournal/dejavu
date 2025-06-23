@@ -166,7 +166,7 @@
   {:asset-map (into {}
                     (map (fn [[file sha]]
                            (let [relative (fs/relativize resource-dir file)]
-                             [(str (str "/" relative))
+                             [(str "/" relative)
                               (str bucket "/" (human-readable (if bucket
                                                                 (fs/file-name relative)
                                                                 relative) sha))]))
